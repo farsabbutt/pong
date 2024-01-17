@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Animation</title>
+</head>
+<body>
+<canvas id="myCanvas" width="500" height="500" style="border: 1px solid #000000"></canvas>
+<audio id="collision" src="assets/sounds/collision.wav"></audio>
+<audio id="game-over" src="assets/sounds/game-over.wav"></audio>
+<script type="text/javascript">
+    var canvas = document.getElementById('myCanvas');
+    var soundCollision = document.getElementById('collision');
+    var soundGameOver = document.getElementById('game-over');
+
+    var ctx = canvas.getContext('2d');
+
+    var canvasWidth = canvas.width
+    var canvasHeight = canvas.height
+
+    var ballX = canvasWidth / 2;
+    var ballY = canvasHeight - 230;
+    var ballDx = 5;
+    var ballDy = -5;
+
+    var barPositionX = 150
+    var barPositionY = 460
+    var barPositionDx = 20
+    var barPositionWidth = 150
+
+    var score = 0
+
+    var specialItemX = canvasWidth / 2
+    var specialItemY = 10
+    var specialItemDx = 2
+    var specialItemDy = -2
+    var isSpecialItemRendered = false
+    let isDisplaySpecialItem = false
+
+    var bonusTextOpacity = 1.0;
+    var shouldBonusTextFadeOut = true;
+    var isRenderBonusText = false
+
+
+    var specialItemTimeout = null
+    document.onkeydown = (event) => {
+
+        const pressedKey = event.key
+        if (pressedKey === "Enter" || pressedKey === " ") {
+            resetAll()
+            animate()
+            return;
+
+        }
+        if (pressedKey === "ArrowRight") {
+            barPositionX += 2 * barPositionDx
+            if (barPositionX >= 350) {
+                barPositionX = 350
+            }
+            return
+
+        }
+        if (pressedKey === "ArrowLeft") {
+            barPositionX -=2 * barPositionDx
+
+        }
+        if (barPositionX <= 0) {
+            barPositionX = 0
+
+        }
+
+    }
+    function resetAll() {
+        ballX = canvasWidth / 2;
+        ballY = canvasHeight - 230;
+        specialItemX = canvasWidth / 2
+        specialItemY = 10
+        specialItemDx = 2
+        specialItemDy = -2
+        isSpecialItemRendered = false
+        isDisplaySpecialItem = false
+
+        score = 0
+
+    }
+    function drawCircle(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+
+    }
+    function drawLine(from, to) {
+        var [fromX,fromY] = from
+        var [toX, toY] = to
+        ctx.moveTo(fromX, fromY)
+        ctx.lineTo(toX, toY)
+
+    }
+    function drawBar(x,y) {
+        ctx.beginPath()
+        ctx.rect(barPositionX, barPositionY , barPositionWidth , 20)
+        ctx.strokeStyle = '#0070a1'
+        ctx.fill()
+        ctx.lineWidth = 2
+        ctx.stroke()
+
+    }
+    function drawMan(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.moveTo(x, y + 10); // Move the pen to (20, 20)
+        ctx.lineTo(x, y + 30); // Draw a line to (180, 100)
+        ctx.strokeStyle = '#000000'; // Set the color of the line
+        ctx.lineWidth = 2; // Set the line width
+
+        ctx.stroke(); // Draw the line on the canvas
+        ctx.lineTo(x - 20, y + 40); // Draw a line to (180, 100)
+        ctx.moveTo(x, y + 30)
+        ctx.lineTo(x + 20, y + 40); // Draw a line to (180, 100)
+        // ctx.lineTo(x + 20, y + 40); // Draw a line to (180, 100)
+        ctx.strokeStyle = '#000000'; // Set the color of the line
+        ctx.lineWidth = 2; // Set the line width
+
+        ctx.stroke(); // Draw the line on the canvas
+        ctx.closePath();
+
+    }
+    function drawOrigin() {
+        ctx.font = "15px serif";
+        ctx.fillStyle = "#000000"
+        ctx.fillText("0,0", 0, 10);
+
+    }
+    function drawScore() {
+        ctx.font = "20px monospace";
+        ctx.fillStyle = "#0070a1"
+        ctx.fillText("Score: " + score, 10, 20);
+
+    }
+    function drawGameOver() {
+        ctx.font = "40px monospace";
+        ctx.fillStyle = "#ff5959"
+        ctx.fillText("Game Over!", 120, 250);
+        ctx.font = "20px monospace";
+        ctx.fillStyle = "#000000"
+        ctx.fillText("Press Space or Enter to restart.", 50, 280);
+
+    }
+    function drawSpecialItem() {
+        ctx.beginPath()
+        ctx.rect(specialItemX, specialItemY, 10, 10)
+        ctx.fillStyle = "#7c1c1c"
+        ctx.fill()
+
+    }
+    function isSpecialItemDisplayed()
+    {
+        return isSpecialItemRendered && specialItemY < canvasHeight
+
+    }
+    function isCollision() {
+        return barPositionY === ballY && (ballX >= barPositionX && ballX <= barPositionX + barPositionWidth);
+    }
+
+    function isSpecialItemCollision() {
+        return barPositionY === specialItemY && (specialItemX >= barPositionX && specialItemX <= barPositionX + barPositionWidth);
+    }
+    function shouldDisplaySpecialItem() {
+        if (!specialItemTimeout) {
+            const milliseconds = Math.floor(Math.random() * 10) * 1000
+            console.log(`rendering special item in: ${milliseconds/1000} seconds`)
+            specialItemTimeout = setTimeout(() => {
+                isDisplaySpecialItem = true
+            }, milliseconds)
+        }
+        return isDisplaySpecialItem
+    }
+
+    function drawBonusPointsText() {
+        var text = "+5 Points Bonus";
+        ctx.font = "30px Arial";
+        ctx.fillStyle = "rgba(76, 175, 80, " + bonusTextOpacity + ")";
+        ctx.fillText(text, 120, canvasWidth / 2); // Adjust text position as needed
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // drawOrigin()
+        drawScore()
+        // drawCircle(x,y);
+        drawCircle(ballX,ballY);
+        // drawMan(x - 50, y - 50)
+        drawBar(ballX,ballY)
+
+        if (!isSpecialItemDisplayed() && shouldDisplaySpecialItem()) {
+            drawSpecialItem()
+            isSpecialItemRendered = true
+        }
+
+        if (isSpecialItemDisplayed()) {
+            specialItemY += specialItemDx
+            drawSpecialItem()
+
+            if (specialItemY >= canvasHeight) {
+                isSpecialItemRendered = false
+                isDisplaySpecialItem = false
+                specialItemTimeout = null
+                specialItemY = 0
+            }
+        }
+
+
+        if (ballX > canvasWidth) {
+            ballDx = ballDx * -1
+        }
+
+        if (ballY > canvasWidth) {
+            ballDy = ballDy * -1
+            drawGameOver()
+            soundGameOver.play()
+            return
+        }
+
+        if (ballY < 0) {
+            ballDy = ballDy * -1
+        }
+
+        if (ballX < 0) {
+            ballDx = ballDx * -1
+        }
+
+
+        if (isCollision()){
+            ballDy = ballDy * -1
+            score += 1
+            soundCollision.play()
+        }
+
+        if (isSpecialItemCollision()){
+            isRenderBonusText = true
+            score += 5
+        }
+
+        if (isRenderBonusText) {
+            drawBonusPointsText()
+        }
+
+        // Update the opacity
+        if (isRenderBonusText) {
+            if (shouldBonusTextFadeOut) {
+                bonusTextOpacity -= 0.01;
+                if (bonusTextOpacity <= 0) {
+                    shouldBonusTextFadeOut = true;
+                    isRenderBonusText = false
+                    bonusTextOpacity = 1.0
+                }
+            }
+        }
+
+
+            ballX += ballDx
+            ballY += ballDy
+
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+</script>
+</body>
+</html>
